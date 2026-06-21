@@ -1,55 +1,85 @@
-const { EmbedBuilder } = require("discord.js");
-const { searchItems } = require("../utils/rolimons");
 const {
-    sendSearchResults,
-    getItemThumbnail
-} = require("../utils/searchResults");
+    SlashCommandBuilder
+} = require("discord.js");
+
+const {
+    getAutocomplete,
+    getItem
+} = require("../utils/rolimons");
+
+const {
+    createItemEmbed
+} = require("../utils/embeds");
 
 module.exports = {
 
-    async execute(message, args) {
+    data: new SlashCommandBuilder()
+        .setName("rap")
+        .setDescription("Shows the RAP of a Roblox limited.")
+        .addStringOption(option =>
+            option
+                .setName("item")
+                .setDescription("Choose a Roblox limited")
+                .setRequired(true)
+                .setAutocomplete(true)
+        ),
 
-        if (!args.length) {
-            return message.reply("Usage: `$rap <item name>`");
+    async autocomplete(interaction) {
+
+        try {
+
+            const focused = interaction.options.getFocused();
+
+            const choices = await getAutocomplete(focused);
+
+            await interaction.respond(choices);
+
+        } catch (err) {
+
+            console.error(err);
+
         }
 
-        const query = args.join(" ");
+    },
 
-        const results = await searchItems(query);
+    async execute(interaction) {
 
-        if (results.length === 0) {
-            return message.reply("No items found.");
+        try {
+
+            const assetId = interaction.options.getString("item");
+
+            const item = await getItem(assetId);
+
+            if (!item) {
+
+                return interaction.reply({
+                    content: "❌ Item not found.",
+                    ephemeral: true
+                });
+
+            }
+
+            const reply = await createItemEmbed(
+                item,
+                "rap"
+            );
+
+            await interaction.reply(reply);
+
+        } catch (err) {
+
+            console.error(err);
+
+            if (!interaction.replied) {
+
+                await interaction.reply({
+                    content: "❌ Something went wrong.",
+                    ephemeral: true
+                });
+
+            }
+
         }
-
-        if (results.length > 1) {
-            return sendSearchResults(message, results);
-        }
-
-        const item = results[0];
-
-        const thumbnail = await getItemThumbnail(item.id);
-
-        const embed = new EmbedBuilder()
-            .setTitle(item.name)
-            .setDescription("Recent Average Price")
-            .addFields({
-                name: "RAP",
-                value: item.rap > 0
-                    ? `${item.rap.toLocaleString()} Robux`
-                    : "Unknown",
-                inline: true
-            })
-            .setFooter({
-                text: `Asset ID: ${item.id}`
-            })
-            .setTimestamp();
-
-        if (thumbnail)
-            embed.setThumbnail(thumbnail);
-
-        return message.reply({
-            embeds: [embed]
-        });
 
     }
 
