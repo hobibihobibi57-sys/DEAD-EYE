@@ -23,38 +23,63 @@ async function updateItems() {
 
 }
 
+function parseItem(assetId, item) {
+
+    return {
+        assetId: Number(assetId),
+
+        name: item[0],
+
+        acronym: item[1],
+
+        rap: item[2] || 0,
+
+        value: item[3] || 0,
+
+        defaultValue: item[4] || 0,
+
+        demand: item[5],
+
+        trend: item[6],
+
+        projected: item[7] !== -1,
+
+        hyped: item[8] !== -1,
+
+        rare: item[9] !== -1
+    };
+
+}
+
 async function searchItems(query) {
 
     const items = await updateItems();
 
-    query = query.toLowerCase();
+    query = query.toLowerCase().trim();
 
     const startsWith = [];
     const contains = [];
 
     for (const assetId in items) {
 
-        const item = items[assetId];
+        const parsed = parseItem(assetId, items[assetId]);
 
-        const name = item[0];
-        const lower = name.toLowerCase();
-
-        const object = {
-            assetId,
-            name,
-            rap: item[2] || 0,
-            value: item[3] || 0,
-            projected: item[7] === 1,
-            rare: item[8] === 1
-        };
+        const lower = parsed.name.toLowerCase();
 
         if (lower.startsWith(query)) {
-            startsWith.push(object);
+
+            startsWith.push(parsed);
+
         } else if (lower.includes(query)) {
-            contains.push(object);
+
+            contains.push(parsed);
+
         }
 
     }
+
+    startsWith.sort((a, b) => a.name.localeCompare(b.name));
+    contains.sort((a, b) => a.name.localeCompare(b.name));
 
     return [...startsWith, ...contains];
 
@@ -69,14 +94,7 @@ async function getItem(assetId) {
     if (!item)
         return null;
 
-    return {
-        assetId,
-        name: item[0],
-        rap: item[2] || 0,
-        value: item[3] || 0,
-        projected: item[7] === 1,
-        rare: item[8] === 1
-    };
+    return parseItem(assetId, item);
 
 }
 
