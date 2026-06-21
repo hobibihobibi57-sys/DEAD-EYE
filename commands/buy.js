@@ -1,100 +1,71 @@
-const {
-    SlashCommandBuilder
-} = require("discord.js");
-
-const {
-    getAutocomplete,
-    getItem
-} = require("../utils/rolimons");
-
-const {
-    getCheapest
-} = require("../utils/roblox");
-
-const {
-    createItemEmbed
-} = require("../utils/embeds");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { searchItems } = require("../utils/rolimons");
+const { getCheapest, getThumbnail } = require("../utils/roblox");
 
 module.exports = {
-
     data: new SlashCommandBuilder()
         .setName("buy")
-        .setDescription("Shows the cheapest available copy of a Roblox limited.")
+        .setDescription("Get the cheapest price of a Roblox limited item")
         .addStringOption(option =>
             option
                 .setName("item")
-                .setDescription("Choose a Roblox limited")
+                .setDescription("Item name")
                 .setRequired(true)
-                .setAutocomplete(true)
         ),
 
-    async autocomplete(interaction) {
+    async execute(interaction) {
+        const query = interaction.options.getString("item");
 
-        try {
+        const results = await searchItems(query);
 
-            const focused = interaction.options.getFocused();
-
-            const choices = await getAutocomplete(focused);
-
-            await interaction.respond(choices);
-
-        } catch (err) {
-
-            console.error(err);
-
+        if (!results.length) {
+            return interaction.reply({
+                content: "No items found.",
+                ephemeral: true
+            });
         }
 
-    },
+        const item = results[0];
 
-    async execute(interaction) {
+        const priceData = await getCheapest(item.assetId);
+        const thumbnail = await getThumbnail(item.assetId);
 
-        try {
+        if (!priceData || !priceData.ok) {
+            return interaction.reply({
+                content: "This item is currently off sale or has no resellers.",
+                ephemeral: true
+            });
+        }
 
-            await interaction.deferReply();
+        const color = 0x2ECC71; // green
 
-            const assetId = interaction.options.getString("item");
-
-            const item = await getItem(assetId);
-
-            if (!item) {
-
-                return interaction.editReply({
-                    content: "❌ Item not found."
-                });
-
-            }
-
-            const cheapest = await getCheapest(assetId);
-
-            const reply = await createItemEmbed(
-                item,
-                "buy",
-                cheapest
+        const embed = new EmbedBuilder()
+            .setTitle(item.name)
+            .setColor(color)
+            .setThumbnail(thumbnail)
+            .addFields(
+                {
+                    name: "💰 Cheapest Price",
+                    value: `${priceData.price.toLocaleString()} R$`,
+                    inline: true
+                },
+                {
+                    name: "📦 Source",
+                    value: priceData.source === "fast" ? "Instant data" : "Marketplace API",
+                    inline: true
+                },
+                {
+                    name: "📊 RAP",
+                    value: item.rap ? item.rap.toLocaleString() : "N/A",
+                    inline: true
+                },
+                {
+                    name: "💎 Value",
+                    value: item.value ? item.value.toLocaleString() : "N/A",
+                    inline: true
+                }
             );
 
-            await interaction.editReply(reply);
-
-        } catch (err) {
-
-            console.error(err);
-
-            if (interaction.deferred) {
-
-                await interaction.editReply({
-                    content: "❌ Something went wrong."
-                });
-
-            } else {
-
-                await interaction.reply({
-                    content: "❌ Something went wrong.",
-                    ephemeral: true
-                });
-
-            }
-
-        }
-
+        return interaction.reply({ embeds: [embed] });
     }
-
 };
