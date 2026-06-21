@@ -55,9 +55,10 @@ function parseItem(assetId, item) {
 
 function getScore(item, query) {
 
+    const q = query.toLowerCase().trim();
+
     const name = item.name.toLowerCase();
     const acronym = (item.acronym || "").toLowerCase();
-    const q = query.toLowerCase().trim();
 
     // Exact name
     if (name === q)
@@ -71,7 +72,7 @@ function getScore(item, query) {
     if (name.startsWith(q))
         return 900;
 
-    // Word starts with
+    // Starts with any word
     const words = name.split(" ");
 
     if (words.some(word => word.startsWith(q)))
@@ -119,19 +120,15 @@ async function searchItems(query) {
 
     results.sort((a, b) => {
 
-        // Better match first
         if (b.score !== a.score)
             return b.score - a.score;
 
-        // Higher value first
         if (b.value !== a.value)
             return b.value - a.value;
 
-        // Higher RAP first
         if (b.rap !== a.rap)
             return b.rap - a.rap;
 
-        // Alphabetical
         return a.name.localeCompare(b.name);
 
     });
@@ -144,12 +141,30 @@ async function getAutocomplete(query) {
 
     const results = await searchItems(query);
 
-    return results.map(item => ({
-        name: item.name.length > 100
-            ? item.name.substring(0, 97) + "..."
-            : item.name,
-        value: item.assetId.toString()
-    }));
+    return results.map(item => {
+
+        const rap =
+            item.rap > 0
+                ? `${Math.round(item.rap / 1000)}k`
+                : "?";
+
+        const value =
+            item.value > 0
+                ? `${Math.round(item.value / 1000)}k`
+                : "N/A";
+
+        let label =
+            `${item.name} • RAP ${rap} • Value ${value}`;
+
+        if (label.length > 100)
+            label = label.substring(0, 97) + "...";
+
+        return {
+            name: label,
+            value: item.assetId.toString()
+        };
+
+    });
 
 }
 
@@ -157,10 +172,12 @@ async function getItem(assetId) {
 
     const items = await updateItems();
 
-    if (!items[assetId])
+    const item = items[assetId];
+
+    if (!item)
         return null;
 
-    return parseItem(assetId, items[assetId]);
+    return parseItem(assetId, item);
 
 }
 
