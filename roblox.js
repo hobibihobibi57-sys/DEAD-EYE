@@ -12,14 +12,35 @@ async function getThumbnail(assetId) {
             `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&size=420x420&format=Png&isCircular=false`
         );
 
-        const image =
-            response.data.data[0]?.imageUrl || null;
+        const image = response.data.data[0]?.imageUrl || null;
 
         cache.thumbnails.set(assetId, image);
 
         return image;
 
-    } catch {
+    } catch (err) {
+
+        console.error(err);
+
+        return null;
+
+    }
+
+}
+
+async function getCollectibleItemId(assetId) {
+
+    try {
+
+        const response = await axios.get(
+            `https://economy.roblox.com/v2/assets/${assetId}/details`
+        );
+
+        return response.data.CollectibleItemId || null;
+
+    } catch (err) {
+
+        console.error(err);
 
         return null;
 
@@ -32,19 +53,26 @@ async function getCheapest(assetId) {
     if (cache.cheapest.has(assetId))
         return cache.cheapest.get(assetId);
 
+    const collectibleItemId = await getCollectibleItemId(assetId);
+
+    if (!collectibleItemId)
+        return null;
+
     try {
 
         const response = await axios.get(
-            `https://apis.roblox.com/marketplace-sales/v1/item/{collectibleItemId}/resellers?limit=10`
+            `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=10`
         );
 
-        const cheapest = response.data.data?.[0] || null;
+        const cheapest = response.data.resellers?.[0] || null;
 
         cache.cheapest.set(assetId, cheapest);
 
         return cheapest;
 
-    } catch {
+    } catch (err) {
+
+        console.error(err);
 
         return null;
 
@@ -54,5 +82,6 @@ async function getCheapest(assetId) {
 
 module.exports = {
     getThumbnail,
+    getCollectibleItemId,
     getCheapest
 };
