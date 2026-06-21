@@ -9,10 +9,10 @@ async function getThumbnail(assetId) {
     try {
 
         const response = await axios.get(
-            `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&size=420x420&format=Png&isCircular=false`
+            `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false`
         );
 
-        const image = response.data.data[0]?.imageUrl || null;
+        const image = response.data.data?.[0]?.imageUrl ?? null;
 
         cache.thumbnails.set(assetId, image);
 
@@ -21,6 +21,24 @@ async function getThumbnail(assetId) {
     } catch (err) {
 
         console.error(err);
+
+        return null;
+
+    }
+
+}
+
+async function getIcon(assetId) {
+
+    try {
+
+        const response = await axios.get(
+            `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false`
+        );
+
+        return response.data.data?.[0]?.imageUrl ?? null;
+
+    } catch {
 
         return null;
 
@@ -38,9 +56,7 @@ async function getCollectibleItemId(assetId) {
 
         return response.data.CollectibleItemId || null;
 
-    } catch (err) {
-
-        console.error(err);
+    } catch {
 
         return null;
 
@@ -53,26 +69,19 @@ async function getCheapest(assetId) {
     if (cache.cheapest.has(assetId))
         return cache.cheapest.get(assetId);
 
-    const collectibleItemId = await getCollectibleItemId(assetId);
-
-    if (!collectibleItemId)
-        return null;
-
     try {
 
         const response = await axios.get(
-            `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=10`
+            `https://economy.roblox.com/v1/assets/${assetId}/resellers?limit=10`
         );
 
-        const cheapest = response.data.resellers?.[0] || null;
+        const cheapest = response.data.data?.[0] || null;
 
         cache.cheapest.set(assetId, cheapest);
 
         return cheapest;
 
-    } catch (err) {
-
-        console.error(err);
+    } catch {
 
         return null;
 
@@ -82,6 +91,7 @@ async function getCheapest(assetId) {
 
 module.exports = {
     getThumbnail,
+    getIcon,
     getCollectibleItemId,
     getCheapest
 };
