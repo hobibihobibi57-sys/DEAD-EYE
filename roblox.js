@@ -1,87 +1,105 @@
 const axios = require("axios");
 const cache = require("./cache");
 
-async function getThumbnail(assetId) {
+const CACHE_TIME = 5 * 60 * 1000;
 
-    if (cache.thumbnails.has(assetId))
-        return cache.thumbnails.get(assetId);
+async function updateItems() {
 
-    try {
-
-        const response = await axios.get(
-            `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&size=420x420&format=Png&isCircular=false`
-        );
-
-        const image = response.data.data[0]?.imageUrl || null;
-
-        cache.thumbnails.set(assetId, image);
-
-        return image;
-
-    } catch (err) {
-
-        console.error(err);
-
-        return null;
-
+    if (
+        cache.rolimons.data &&
+        Date.now() - cache.rolimons.lastUpdated < CACHE_TIME
+    ) {
+        return cache.rolimons.data;
     }
+
+    const response = await axios.get(
+        "https://api.rolimons.com/items/v1/itemdetails"
+    );
+
+    cache.rolimons.data = response.data.items;
+    cache.rolimons.lastUpdated = Date.now();
+
+    return cache.rolimons.data;
 
 }
 
-async function getCollectibleItemId(assetId) {
+function parseItem(assetId, item) {
 
-    try {
+    return {
+        assetId: Number(assetId),
 
-        const response = await axios.get(
-            `https://economy.roblox.com/v2/assets/${assetId}/details`
-        );
+        name: item[0],
 
-        return response.data.CollectibleItemId || null;
+        acronym: item[1],
 
-    } catch (err) {
+        rap: item[2] || 0,
 
-        console.error(err);
+        value: item[3] || 0,
 
-        return null;
+        defaultValue: item[4] || 0,
 
-    }
+        demand: item[5],
+
+        trend: item[6],
+
+        projected: item[7] !== -1,
+
+        hyped: item[8] !== -1,
+
+        rare: item[9] !== -1
+    };
 
 }
 
-async function getCheapest(assetId) {
+async function searchItems(query) {
 
-    if (cache.cheapest.has(assetId))
-        return cache.cheapest.get(assetId);
+    const items = await updateItems();
 
-    const collectibleItemId = await getCollectibleItemId(assetId);
+    query = query.toLowerCase().trim();
 
-    if (!collectibleItemId)
-        return null;
+    const startsWith = [];
+    const contains = [];
 
-    try {
+    for (const assetId in items) {
 
-        const response = await axios.get(
-            `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=10`
-        );
+        const parsed = parseItem(assetId, items[assetId]);
 
-        const cheapest = response.data.resellers?.[0] || null;
+        const lower = parsed.name.toLowerCase();
 
-        cache.cheapest.set(assetId, cheapest);
+        if (lower.startsWith(query)) {
 
-        return cheapest;
+            startsWith.push(parsed);
 
-    } catch (err) {
+        } else if (lower.includes(query)) {
 
-        console.error(err);
+            contains.push(parsed);
 
-        return null;
+        }
 
     }
+
+    startsWith.sort((a, b) => a.name.localeCompare(b.name));
+    contains.sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...startsWith, ...contains];
+
+}
+
+async function getItem(assetId) {
+
+    const items = await updateItems();
+
+    const item = items[assetId];
+
+    if (!item)
+        return null;
+
+    return parseItem(assetId, item);
 
 }
 
 module.exports = {
-    getThumbnail,
-    getCollectibleItemId,
-    getCheapest
+    updateItems,
+    searchItems,
+    getItem
 };
