@@ -27,7 +27,8 @@ async function searchItems(query) {
 
     query = query.toLowerCase();
 
-    const results = [];
+    const startsWith = [];
+    const contains = [];
 
     for (const id in items) {
 
@@ -35,20 +36,24 @@ async function searchItems(query) {
 
         const name = item[0];
 
-        if (name.toLowerCase().startsWith(query)) {
+        const lower = name.toLowerCase();
 
-            results.push({
-                id,
-                name,
-                rap: item[2],
-                value: item[3]
-            });
+        const object = {
+            id,
+            name,
+            rap: item[2],
+            value: item[3]
+        };
 
+        if (lower.startsWith(query)) {
+            startsWith.push(object);
+        } else if (lower.includes(query)) {
+            contains.push(object);
         }
 
     }
 
-    return results;
+    return [...startsWith, ...contains];
 
 }
 
