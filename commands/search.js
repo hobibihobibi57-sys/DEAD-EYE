@@ -1,103 +1,101 @@
 const {
-    SlashCommandBuilder,
-    EmbedBuilder
+    SlashCommandBuilder
 } = require("discord.js");
 
 const {
-    searchItems,
-    getAutocomplete
+    getAutocomplete,
+    getItem
 } = require("../utils/rolimons");
 
 const {
-    getThumbnail
+    getCheapest
 } = require("../utils/roblox");
 
+const {
+    createItemEmbed
+} = require("../utils/embeds");
+
 module.exports = {
+
     data: new SlashCommandBuilder()
         .setName("search")
-        .setDescription("Search Roblox limited items")
+        .setDescription("Shows information about a Roblox limited.")
         .addStringOption(option =>
             option
-                .setName("query")
-                .setDescription("Item name")
+                .setName("item")
+                .setDescription("Choose a Roblox limited")
                 .setRequired(true)
                 .setAutocomplete(true)
         ),
 
-    // AUTOCOMPLETE (NO RAP / VALUE ANYMORE)
     async autocomplete(interaction) {
-        const focused = interaction.options.getFocused();
 
-        const choices = await getAutocomplete(focused);
+        try {
 
-        await interaction.respond(
-            choices.slice(0, 25)
-        );
+            const focused = interaction.options.getFocused();
+
+            const choices = await getAutocomplete(focused);
+
+            await interaction.respond(choices);
+
+        } catch (err) {
+
+            console.error(err);
+
+        }
+
     },
 
     async execute(interaction) {
-        const query = interaction.options.getString("query");
 
-        const results = await searchItems(query);
+        try {
 
-        if (!results.length) {
-            return interaction.reply({
-                content: "No items found.",
-                ephemeral: true
-            });
-        }
+            await interaction.deferReply();
 
-        // If multiple results → show list (like search bar)
-        if (results.length > 1) {
+            const assetId = interaction.options.getString("item");
 
-            const list = await Promise.all(
-                results.slice(0, 10).map(async (item, i) => {
-                    return `${i + 1}. **${item.name}**`;
-                })
-            );
+            const item = await getItem(assetId);
 
-            const embed = new EmbedBuilder()
-                .setTitle("Matching Items")
-                .setDescription(list.join("\n"))
-                .setColor(0x5865F2)
-                .setFooter({
-                    text: `${results.length} results found`
+            if (!item) {
+
+                return interaction.editReply({
+                    content: "❌ Item not found."
                 });
 
-            return interaction.reply({ embeds: [embed] });
-        }
+            }
 
-        // Single item result
-        const item = results[0];
-        const thumbnail = await getThumbnail(item.assetId);
+            const cheapest = await getCheapest(assetId);
 
-        const embed = new EmbedBuilder()
-            .setTitle(item.name)
-            .setColor(0x2ECC71)
-            .setThumbnail(thumbnail)
-            .addFields(
-                {
-                    name: "📊 RAP",
-                    value: item.rap ? item.rap.toLocaleString() : "N/A",
-                    inline: true
-                },
-                {
-                    name: "💎 Value",
-                    value: item.value ? item.value.toLocaleString() : "N/A",
-                    inline: true
-                },
-                {
-                    name: "⭐ Status",
-                    value:
-                        item.rare
-                            ? "Rare"
-                            : item.projected
-                            ? "Projected"
-                            : "Normal",
-                    inline: true
-                }
+            const reply = await createItemEmbed(
+                item,
+                "search",
+                cheapest
             );
 
-        return interaction.reply({ embeds: [embed] });
+            await interaction.editReply(reply);
+
+        } catch (err) {
+
+            console.error(err);
+
+            if (interaction.deferred) {
+
+                await interaction.editReply({
+                    content: "❌ Something went wrong while searching for that item."
+                });
+
+            } else {
+
+                await interaction.reply({
+                    content: "❌ Something went wrong while searching for that item.",
+                    ephemeral: true
+                });
+
+            }
+
+        }
+
     }
+
+};
 };
