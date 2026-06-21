@@ -35,7 +35,7 @@ async function getCheapest(assetId) {
     try {
 
         const response = await axios.get(
-            `https://economy.roblox.com/v1/assets/${assetId}/resellers?limit=10`
+            `https://apis.roblox.com/marketplace-sales/v1/item/{collectibleItemId}/resellers?limit=10`
         );
 
         const cheapest = response.data.data?.[0] || null;
