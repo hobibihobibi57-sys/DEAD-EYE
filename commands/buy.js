@@ -1,71 +1,95 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { searchItems } = require("../utils/rolimons");
-const { getCheapest, getThumbnail } = require("../utils/roblox");
+const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
+const { searchItems, getAutocomplete, getItem } = require("../utils/rolimons");
+const { getCheapest } = require("../utils/roblox");
+const { createItemEmbed } = require("../utils/embeds");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("buy")
-        .setDescription("Get the cheapest price of a Roblox limited item")
+        .setDescription("Shows the cheapest available copy of a Roblox limited.")
         .addStringOption(option =>
             option
                 .setName("item")
-                .setDescription("Item name")
+                .setDescription("Choose a Roblox limited")
                 .setRequired(true)
+                .setAutocomplete(true)
         ),
 
+    async autocomplete(interaction) {
+        try {
+            const focused = interaction.options.getFocused();
+            const results = await searchItems(focused);
+
+            const choices = await getAutocomplete(focused);
+
+            if (results.length > 1) {
+                await interaction.respond(choices);
+
+                const list = results
+                    .slice(0, 10)
+                    .map((item, i) => `${i + 1}. ${item.name}`)
+                    .join("\n");
+
+                return interaction.followUp({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle("Matching Items")
+                            .setDescription(list)
+                    ]
+                });
+            }
+
+            if (results.length === 0) {
+                return interaction.respond([]);
+            }
+
+        } catch (err) {
+            console.error(err);
+        }
+    },
+
     async execute(interaction) {
-        const query = interaction.options.getString("item");
+        try {
+            await interaction.deferReply();
 
-        const results = await searchItems(query);
+            const assetId = interaction.options.getString("item");
+            const item = await getItem(assetId);
 
-        if (!results.length) {
-            return interaction.reply({
-                content: "No items found.",
-                ephemeral: true
-            });
-        }
+            if (!item) {
+                return interaction.editReply({
+                    content: "❌ Item not found."
+                });
+            }
 
-        const item = results[0];
+            const cheapest = await getCheapest(assetId);
 
-        const priceData = await getCheapest(item.assetId);
-        const thumbnail = await getThumbnail(item.assetId);
+            if (!cheapest) {
+                return interaction.editReply({
+                    content: "No copies are currently for sale."
+                });
+            }
 
-        if (!priceData || !priceData.ok) {
-            return interaction.reply({
-                content: "This item is currently off sale or has no resellers.",
-                ephemeral: true
-            });
-        }
-
-        const color = 0x2ECC71; // green
-
-        const embed = new EmbedBuilder()
-            .setTitle(item.name)
-            .setColor(color)
-            .setThumbnail(thumbnail)
-            .addFields(
-                {
-                    name: "💰 Cheapest Price",
-                    value: `${priceData.price.toLocaleString()} R$`,
-                    inline: true
-                },
-                {
-                    name: "📦 Source",
-                    value: priceData.source === "fast" ? "Instant data" : "Marketplace API",
-                    inline: true
-                },
-                {
-                    name: "📊 RAP",
-                    value: item.rap ? item.rap.toLocaleString() : "N/A",
-                    inline: true
-                },
-                {
-                    name: "💎 Value",
-                    value: item.value ? item.value.toLocaleString() : "N/A",
-                    inline: true
-                }
+            const reply = await createItemEmbed(
+                item,
+                "buy",
+                cheapest
             );
 
-        return interaction.reply({ embeds: [embed] });
+            return interaction.editReply(reply);
+
+        } catch (err) {
+            console.error(err);
+
+            if (interaction.deferred) {
+                return interaction.editReply({
+                    content: "❌ Something went wrong."
+                });
+            } else {
+                return interaction.reply({
+                    content: "❌ Something went wrong.",
+                    ephemeral: true
+                });
+            }
+        }
     }
 };
