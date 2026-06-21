@@ -1,105 +1,87 @@
 const axios = require("axios");
 const cache = require("./cache");
 
-const CACHE_TIME = 5 * 60 * 1000;
+async function getThumbnail(assetId) {
 
-async function updateItems() {
+    if (cache.thumbnails.has(assetId))
+        return cache.thumbnails.get(assetId);
 
-    if (
-        cache.rolimons.data &&
-        Date.now() - cache.rolimons.lastUpdated < CACHE_TIME
-    ) {
-        return cache.rolimons.data;
-    }
+    try {
 
-    const response = await axios.get(
-        "https://api.rolimons.com/items/v1/itemdetails"
-    );
+        const response = await axios.get(
+            `https://thumbnails.roblox.com/v1/assets?assetIds=${assetId}&size=420x420&format=Png&isCircular=false`
+        );
 
-    cache.rolimons.data = response.data.items;
-    cache.rolimons.lastUpdated = Date.now();
+        const image = response.data.data[0]?.imageUrl || null;
 
-    return cache.rolimons.data;
+        cache.thumbnails.set(assetId, image);
 
-}
+        return image;
 
-function parseItem(assetId, item) {
+    } catch (err) {
 
-    return {
-        assetId: Number(assetId),
+        console.error(err);
 
-        name: item[0],
-
-        acronym: item[1],
-
-        rap: item[2] || 0,
-
-        value: item[3] || 0,
-
-        defaultValue: item[4] || 0,
-
-        demand: item[5],
-
-        trend: item[6],
-
-        projected: item[7] !== -1,
-
-        hyped: item[8] !== -1,
-
-        rare: item[9] !== -1
-    };
-
-}
-
-async function searchItems(query) {
-
-    const items = await updateItems();
-
-    query = query.toLowerCase().trim();
-
-    const startsWith = [];
-    const contains = [];
-
-    for (const assetId in items) {
-
-        const parsed = parseItem(assetId, items[assetId]);
-
-        const lower = parsed.name.toLowerCase();
-
-        if (lower.startsWith(query)) {
-
-            startsWith.push(parsed);
-
-        } else if (lower.includes(query)) {
-
-            contains.push(parsed);
-
-        }
-
-    }
-
-    startsWith.sort((a, b) => a.name.localeCompare(b.name));
-    contains.sort((a, b) => a.name.localeCompare(b.name));
-
-    return [...startsWith, ...contains];
-
-}
-
-async function getItem(assetId) {
-
-    const items = await updateItems();
-
-    const item = items[assetId];
-
-    if (!item)
         return null;
 
-    return parseItem(assetId, item);
+    }
+
+}
+
+async function getCollectibleItemId(assetId) {
+
+    try {
+
+        const response = await axios.get(
+            `https://economy.roblox.com/v2/assets/${assetId}/details`
+        );
+
+        return response.data.CollectibleItemId || null;
+
+    } catch (err) {
+
+        console.error(err);
+
+        return null;
+
+    }
+
+}
+
+async function getCheapest(assetId) {
+
+    if (cache.cheapest.has(assetId))
+        return cache.cheapest.get(assetId);
+
+    const collectibleItemId = await getCollectibleItemId(assetId);
+
+    if (!collectibleItemId)
+        return null;
+
+    try {
+
+        const response = await axios.get(
+            `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=10`
+        );
+
+        const cheapest = response.data.resellers?.[0] || null;
+
+        cache.cheapest.set(assetId, cheapest);
+
+        return cheapest;
+
+    } catch (err) {
+
+        console.error(err);
+
+        return null;
+
+    }
 
 }
 
 module.exports = {
-    updateItems,
-    searchItems,
-    getItem
+    getThumbnail,
+    getCollectibleItemId,
+    getCheapest
 };
