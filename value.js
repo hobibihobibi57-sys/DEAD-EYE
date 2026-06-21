@@ -1,59 +1,85 @@
-const { EmbedBuilder } = require("discord.js");
-const { searchItems } = require("../utils/rolimons");
+const {
+    SlashCommandBuilder
+} = require("discord.js");
+
+const {
+    getAutocomplete,
+    getItem
+} = require("../utils/rolimons");
+
+const {
+    createItemEmbed
+} = require("../utils/embeds");
 
 module.exports = {
 
-    async execute(message, args) {
+    data: new SlashCommandBuilder()
+        .setName("value")
+        .setDescription("Shows the Rolimons value of a Roblox limited.")
+        .addStringOption(option =>
+            option
+                .setName("item")
+                .setDescription("Choose a Roblox limited")
+                .setRequired(true)
+                .setAutocomplete(true)
+        ),
 
-        if (!args.length) {
-            return message.reply("Usage: `$value <item name>`");
+    async autocomplete(interaction) {
+
+        try {
+
+            const focused = interaction.options.getFocused();
+
+            const choices = await getAutocomplete(focused);
+
+            await interaction.respond(choices);
+
+        } catch (err) {
+
+            console.error(err);
+
         }
 
-        const query = args.join(" ");
+    },
 
-        const results = await searchItems(query);
+    async execute(interaction) {
 
-        if (results.length === 0) {
-            return message.reply("No items found.");
-        }
+        try {
 
-        if (results.length > 1) {
+            const assetId = interaction.options.getString("item");
 
-            const list = results
-                .slice(0, 10)
-                .map((item, index) => `${index + 1}. ${item.name}`)
-                .join("\n");
+            const item = await getItem(assetId);
 
-            const embed = new EmbedBuilder()
-                .setTitle("Matching Items")
-                .setDescription(list)
-                .setFooter({
-                    text: `${results.length} results found`
+            if (!item) {
+
+                return interaction.reply({
+                    content: "❌ Item not found.",
+                    ephemeral: true
                 });
 
-            return message.reply({
-                embeds: [embed]
-            });
+            }
+
+            const reply = await createItemEmbed(
+                item,
+                "value"
+            );
+
+            await interaction.reply(reply);
+
+        } catch (err) {
+
+            console.error(err);
+
+            if (!interaction.replied) {
+
+                await interaction.reply({
+                    content: "❌ Something went wrong.",
+                    ephemeral: true
+                });
+
+            }
 
         }
-
-        const item = results[0];
-
-        const value = item.value > 0
-            ? item.value.toLocaleString()
-            : "No Value";
-
-        const embed = new EmbedBuilder()
-            .setTitle(item.name)
-            .addFields({
-                name: "Value",
-                value,
-                inline: true
-            });
-
-        message.reply({
-            embeds: [embed]
-        });
 
     }
 
