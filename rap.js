@@ -1,6 +1,9 @@
 const { EmbedBuilder } = require("discord.js");
 const { searchItems } = require("../utils/rolimons");
-const { sendSearchResults } = require("../utils/searchResults");
+const {
+    sendSearchResults,
+    getItemThumbnail
+} = require("../utils/searchResults");
 
 module.exports = {
 
@@ -18,25 +21,33 @@ module.exports = {
             return message.reply("No items found.");
         }
 
-        // Multiple matches
         if (results.length > 1) {
             return sendSearchResults(message, results);
         }
 
-        // One match
         const item = results[0];
+
+        const thumbnail = await getItemThumbnail(item.id);
 
         const embed = new EmbedBuilder()
             .setTitle(item.name)
+            .setDescription("Recent Average Price")
             .addFields({
-                name: "Recent Average Price (RAP)",
+                name: "RAP",
                 value: item.rap > 0
-                    ? item.rap.toLocaleString()
+                    ? `${item.rap.toLocaleString()} Robux`
                     : "Unknown",
                 inline: true
-            });
+            })
+            .setFooter({
+                text: `Asset ID: ${item.id}`
+            })
+            .setTimestamp();
 
-        message.reply({
+        if (thumbnail)
+            embed.setThumbnail(thumbnail);
+
+        return message.reply({
             embeds: [embed]
         });
 
