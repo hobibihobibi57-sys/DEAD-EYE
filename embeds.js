@@ -5,9 +5,7 @@ const {
     ButtonStyle
 } = require("discord.js");
 
-const {
-    getThumbnail
-} = require("./roblox");
+const { getIcon } = require("./roblox");
 
 const COLORS = {
     NORMAL: 0x2ECC71,     // Green
@@ -82,7 +80,7 @@ function formatTrend(trend) {
 
 async function createItemEmbed(item, mode, cheapest = null) {
 
-    const thumbnail = await getThumbnail(item.assetId);
+    const icon = await getIcon(item.assetId);
 
     const embed = new EmbedBuilder()
         .setColor(getColor(item))
@@ -92,8 +90,8 @@ async function createItemEmbed(item, mode, cheapest = null) {
         })
         .setTimestamp();
 
-    if (thumbnail)
-        embed.setThumbnail(thumbnail);
+    if (icon)
+        embed.setImage(icon);
 
     let description = "";
 
@@ -103,8 +101,10 @@ async function createItemEmbed(item, mode, cheapest = null) {
     if (item.rare)
         description += "⭐ **Rare Item**\n";
 
-    if (description.length)
-        embed.setDescription(description);
+    if (description.length === 0)
+        description = "🟢 **Normal Item**";
+
+    embed.setDescription(description);
 
     switch (mode) {
 
@@ -113,7 +113,9 @@ async function createItemEmbed(item, mode, cheapest = null) {
             embed.addFields(
                 {
                     name: "📈 Recent Average Price",
-                    value: `**${item.rap.toLocaleString()} Robux**`,
+                    value: item.rap > 0
+                        ? `**${item.rap.toLocaleString()} Robux**`
+                        : "Unknown",
                     inline: false
                 }
             );
@@ -138,7 +140,7 @@ async function createItemEmbed(item, mode, cheapest = null) {
 
             embed.addFields(
                 {
-                    name: "💰 Cheapest Available Copy",
+                    name: "💰 Cheapest Copy",
                     value: cheapest
                         ? `**${cheapest.price.toLocaleString()} Robux**`
                         : "Not currently for sale",
@@ -153,7 +155,7 @@ async function createItemEmbed(item, mode, cheapest = null) {
             embed.addFields(
 
                 {
-                    name: "📈 Recent Average Price",
+                    name: "📈 RAP",
                     value: item.rap > 0
                         ? `**${item.rap.toLocaleString()} Robux**`
                         : "Unknown",
@@ -165,6 +167,12 @@ async function createItemEmbed(item, mode, cheapest = null) {
                     value: item.value > 0
                         ? `**${item.value.toLocaleString()} Robux**`
                         : "No Value",
+                    inline: true
+                },
+
+                {
+                    name: "\u200B",
+                    value: "\u200B",
                     inline: true
                 },
 
@@ -181,11 +189,17 @@ async function createItemEmbed(item, mode, cheapest = null) {
                 },
 
                 {
+                    name: "\u200B",
+                    value: "\u200B",
+                    inline: true
+                },
+
+                {
                     name: "💰 Cheapest Copy",
                     value: cheapest
                         ? `**${cheapest.price.toLocaleString()} Robux**`
                         : "Not currently for sale",
-                    inline: true
+                    inline: false
                 }
 
             );
@@ -199,25 +213,17 @@ async function createItemEmbed(item, mode, cheapest = null) {
         .addComponents(
 
             new ButtonBuilder()
-
                 .setLabel("Roblox")
-
                 .setEmoji("🛒")
-
                 .setStyle(ButtonStyle.Link)
-
                 .setURL(
                     `https://www.roblox.com/catalog/${item.assetId}`
                 ),
 
             new ButtonBuilder()
-
                 .setLabel("Rolimons")
-
                 .setEmoji("📊")
-
                 .setStyle(ButtonStyle.Link)
-
                 .setURL(
                     `https://www.rolimons.com/item/${item.assetId}`
                 )
