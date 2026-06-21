@@ -1,63 +1,99 @@
-const { EmbedBuilder } = require("discord.js");
-const { searchItems } = require("../utils/rolimons");
-const { getCheapest } = require("../utils/roblox");
+const {
+    SlashCommandBuilder
+} = require("discord.js");
+
+const {
+    getAutocomplete,
+    getItem
+} = require("../utils/rolimons");
+
+const {
+    getCheapest
+} = require("../utils/roblox");
+
+const {
+    createItemEmbed
+} = require("../utils/embeds");
 
 module.exports = {
 
-    async execute(message, args) {
+    data: new SlashCommandBuilder()
+        .setName("buy")
+        .setDescription("Shows the cheapest available copy of a Roblox limited.")
+        .addStringOption(option =>
+            option
+                .setName("item")
+                .setDescription("Choose a Roblox limited")
+                .setRequired(true)
+                .setAutocomplete(true)
+        ),
 
-        if (!args.length)
-            return message.reply("Usage: `$buy <item name>`");
+    async autocomplete(interaction) {
 
-        const query = args.join(" ");
+        try {
 
-        const results = await searchItems(query);
+            const focused = interaction.options.getFocused();
 
-        if (results.length === 0)
-            return message.reply("No items found.");
+            const choices = await getAutocomplete(focused);
 
-        if (results.length > 1) {
+            await interaction.respond(choices);
 
-            const list = results
-                .slice(0, 10)
-                .map((item, i) => `${i + 1}. ${item.name}`)
-                .join("\n");
+        } catch (err) {
 
-            return message.reply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle("Matching Items")
-                        .setDescription(list)
-                ]
-            });
+            console.error(err);
 
         }
 
-        const item = results[0];
+    },
 
-        const reseller = await getCheapest(item.id);
+    async execute(interaction) {
 
-        if (!reseller)
-            return message.reply("No copies are currently for sale.");
+        try {
 
-        const embed = new EmbedBuilder()
-            .setTitle(item.name)
-            .addFields(
-                {
-                    name: "Cheapest Price",
-                    value: reseller.price.toLocaleString(),
-                    inline: true
-                },
-                {
-                    name: "Seller",
-                    value: reseller.seller.name,
-                    inline: true
-                }
+            await interaction.deferReply();
+
+            const assetId = interaction.options.getString("item");
+
+            const item = await getItem(assetId);
+
+            if (!item) {
+
+                return interaction.editReply({
+                    content: "❌ Item not found."
+                });
+
+            }
+
+            const cheapest = await getCheapest(assetId);
+
+            const reply = await createItemEmbed(
+                item,
+                "buy",
+                cheapest
             );
 
-        message.reply({
-            embeds: [embed]
-        });
+            await interaction.editReply(reply);
+
+        } catch (err) {
+
+            console.error(err);
+
+            if (interaction.deferred) {
+
+                await interaction.editReply({
+                    content: "❌ Something went wrong."
+                });
+
+            } else {
+
+                await interaction.reply({
+                    content: "❌ Something went wrong.",
+                    ephemeral: true
+                });
+
+            }
+
+        }
 
     }
 
