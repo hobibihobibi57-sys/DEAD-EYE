@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const axios = require("axios");
 
-async function getThumbnail(assetId) {
+async function getItemThumbnail(assetId) {
 
     try {
 
@@ -31,22 +31,22 @@ async function sendSearchResults(message, results) {
 
     for (const item of results.slice(0, 10)) {
 
-        const image = await getThumbnail(item.id);
+        const thumbnail = await getItemThumbnail(item.id);
 
         const embed = new EmbedBuilder()
             .setTitle(item.name)
             .addFields(
                 {
-                    name: "RAP",
+                    name: "📈 RAP",
                     value: item.rap > 0
-                        ? item.rap.toLocaleString()
+                        ? `${item.rap.toLocaleString()} Robux`
                         : "Unknown",
                     inline: true
                 },
                 {
-                    name: "Value",
+                    name: "💎 Value",
                     value: item.value > 0
-                        ? item.value.toLocaleString()
+                        ? `${item.value.toLocaleString()} Robux`
                         : "No Value",
                     inline: true
                 }
@@ -55,8 +55,9 @@ async function sendSearchResults(message, results) {
                 text: `Asset ID: ${item.id}`
             });
 
-        if (image)
-            embed.setThumbnail(image);
+        if (thumbnail) {
+            embed.setThumbnail(thumbnail);
+        }
 
         embeds.push(embed);
 
@@ -70,5 +71,6 @@ async function sendSearchResults(message, results) {
 }
 
 module.exports = {
-    sendSearchResults
+    sendSearchResults,
+    getItemThumbnail
 };
