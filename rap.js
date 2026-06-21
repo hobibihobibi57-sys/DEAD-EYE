@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const { searchItems } = require("../utils/rolimons");
+const { sendSearchResults } = require("../utils/searchResults");
 
 module.exports = {
 
@@ -17,33 +18,21 @@ module.exports = {
             return message.reply("No items found.");
         }
 
+        // Multiple matches
         if (results.length > 1) {
-
-            const list = results
-                .slice(0, 10)
-                .map((item, index) => `${index + 1}. ${item.name}`)
-                .join("\n");
-
-            const embed = new EmbedBuilder()
-                .setTitle("Matching Items")
-                .setDescription(list)
-                .setFooter({
-                    text: `${results.length} results found`
-                });
-
-            return message.reply({
-                embeds: [embed]
-            });
-
+            return sendSearchResults(message, results);
         }
 
+        // One match
         const item = results[0];
 
         const embed = new EmbedBuilder()
             .setTitle(item.name)
             .addFields({
                 name: "Recent Average Price (RAP)",
-                value: item.rap.toLocaleString(),
+                value: item.rap > 0
+                    ? item.rap.toLocaleString()
+                    : "Unknown",
                 inline: true
             });
 
