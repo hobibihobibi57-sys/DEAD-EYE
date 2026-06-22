@@ -40,7 +40,7 @@ module.exports = {
 
         } catch (err) {
 
-            console.error(err);
+            console.error("[SEARCH AUTOCOMPLETE]", err);
 
         }
 
@@ -76,7 +76,7 @@ module.exports = {
 
         } catch (err) {
 
-            console.error(err);
+            console.error("[SEARCH]", err);
 
             if (interaction.deferred) {
 
