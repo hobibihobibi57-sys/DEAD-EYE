@@ -13,8 +13,8 @@ async function updateItems() {
     }
 
     const response = await axios.get(
-        "https://api.rolimons.com/items/v1/itemdetails"
-    );
+    "https://api.rolimons.com/items/v2/itemdetails"
+);
 
     cache.rolimons.data = response.data.items;
     cache.rolimons.lastUpdated = Date.now();
