@@ -1,4 +1,4 @@
-const {
+    const {
     SlashCommandBuilder,
     EmbedBuilder
 } = require("discord.js");
@@ -15,7 +15,7 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setColor(COLORS.DEFAULT)
-            .setTitle("📚 Roblox Limited Bot Help")
+            .setTitle("📚 DEADEYE COMMANDS")
             .setDescription("Here are all the available commands:")
             .addFields(
                 {
@@ -40,7 +40,7 @@ module.exports = {
                 }
             )
             .setFooter({
-                text: "Roblox Limited Bot"
+                text: "DEADEYE"
             })
             .setTimestamp();
 
