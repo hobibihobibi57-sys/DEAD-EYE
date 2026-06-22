@@ -102,7 +102,7 @@ async function createItemEmbed(item, mode, cheapest = null) {
         description += "⭐ **Rare Item**\n";
 
     if (description.length === 0)
-        description = "🟢 **Normal Item**";
+        description = "🟢 **Limited Item**";
 
     embed.setDescription(description);
 
