@@ -46,7 +46,7 @@ function formatDemand(demand) {
             return "Amazing";
 
         default:
-            return "Unknown";
+            return "Not Assigned";
 
     }
 
@@ -72,7 +72,7 @@ function formatTrend(trend) {
             return "Fluctuating";
 
         default:
-            return "Unknown";
+            return "Not Assigned";
 
     }
 
