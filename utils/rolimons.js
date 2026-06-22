@@ -53,12 +53,29 @@ function parseItem(assetId, item) {
 
 }
 
+function normalize(text) {
+
+    return (text || "")
+        .toLowerCase()
+        .replace(/['".,()\-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+}
+
 function getScore(item, query) {
 
-    const q = query.toLowerCase().trim();
+    const q = normalize(query);
 
-    const name = item.name.toLowerCase();
-    const acronym = (item.acronym || "").toLowerCase();
+    const name = normalize(item.name);
+    const acronym = normalize(item.acronym);
+
+    if (!q.length)
+        return 0;
+
+    // Asset ID
+    if (item.assetId.toString() === q)
+        return 1100;
 
     // Exact name
     if (name === q)
@@ -66,11 +83,21 @@ function getScore(item, query) {
 
     // Exact acronym
     if (acronym === q)
+        return 980;
+
+    // Starts with full name
+    if (name.startsWith(q))
         return 950;
 
-    // Starts with
-    if (name.startsWith(q))
+    // Starts with acronym
+    if (acronym.startsWith(q))
         return 900;
+
+    // Every search word exists somewhere
+    const terms = q.split(" ");
+
+    if (terms.every(term => name.includes(term)))
+        return 850;
 
     // Starts with any word
     const words = name.split(" ");
@@ -78,18 +105,20 @@ function getScore(item, query) {
     if (words.some(word => word.startsWith(q)))
         return 800;
 
-    // Acronym starts with
-    if (acronym.startsWith(q))
-        return 700;
-
     // Contains
     if (name.includes(q))
-        return 600;
+        return 700;
+
+    // Ignore spaces
+    if (
+        name.replace(/\s/g, "")
+            .includes(q.replace(/\s/g, ""))
+    )
+        return 650;
 
     return 0;
 
 }
-
 async function searchItems(query) {
 
     const items = await updateItems();
@@ -123,11 +152,11 @@ async function searchItems(query) {
         if (b.score !== a.score)
             return b.score - a.score;
 
-        if (b.value !== a.value)
-            return b.value - a.value;
+        const worthA = Math.max(a.value, a.rap);
+const worthB = Math.max(b.value, b.rap);
 
-        if (b.rap !== a.rap)
-            return b.rap - a.rap;
+if (worthB !== worthA)
+    return worthB - worthA;
 
         return a.name.localeCompare(b.name);
 
@@ -153,8 +182,7 @@ async function getAutocomplete(query) {
                 ? `${Math.round(item.value / 1000)}k`
                 : "N/A";
 
-        let label =
-            `${item.name} • RAP ${rap} • Value ${value}`;
+        let label = item.name;
 
         if (label.length > 100)
             label = label.substring(0, 97) + "...";
