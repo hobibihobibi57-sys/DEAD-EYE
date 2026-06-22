@@ -16,10 +16,14 @@ async function updateItems() {
     "https://api.rolimons.com/items/v2/itemdetails"
 );
 
-    cache.rolimons.data = response.data.items;
-    cache.rolimons.lastUpdated = Date.now();
+// DEBUG
+console.log("Oozing Oscar data:");
+console.log(response.data.items["20011925"]);
 
-    return cache.rolimons.data;
+cache.rolimons.data = response.data.items;
+cache.rolimons.lastUpdated = Date.now();
+
+return cache.rolimons.data;
 
 }
 
