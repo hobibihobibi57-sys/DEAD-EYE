@@ -18,13 +18,17 @@ async function getIcon(assetId) {
         const image =
             response.data.data?.[0]?.imageUrl ?? null;
 
-        cache.thumbnails.set(assetId, image);
+if (image)
+    cache.thumbnails.set(assetId, image);
 
         return image;
 
     } catch (err) {
 
-        console.error("Thumbnail Error:", err.message);
+console.error(
+    `[ROBLOX] Thumbnail lookup failed for ${assetId}:`,
+    err.response?.data || err.message
+);
 
         return null;
 
@@ -40,11 +44,14 @@ async function getCollectibleItemId(assetId) {
             `https://economy.roblox.com/v2/assets/${assetId}/details`
         );
 
-        return response.data.CollectibleItemId || null;
+        return response.data.CollectibleItemId ?? null;
 
     } catch (err) {
 
-        console.error("Collectible Error:", err.message);
+        console.error(
+            `[ROBLOX] Collectible lookup failed for ${assetId}:`,
+            err.response?.data || err.message
+        );
 
         return null;
 
@@ -59,15 +66,22 @@ async function getCheapest(assetId) {
 
     try {
 
-        const response = await axios.get(
-            `https://economy.roblox.com/v1/assets/${assetId}/resellers?limit=10`
+        // Get asset details first
+        const details = await axios.get(
+            `https://economy.roblox.com/v2/assets/${assetId}/details`
         );
 
-        const cheapest = response.data.data?.find(
-            reseller =>
-                reseller &&
-                typeof reseller.price === "number"
-        ) || null;
+        const collectibleId = details.data.CollectibleItemId;
+
+        if (!collectibleId)
+            return null;
+
+        // Get reseller list
+        const response = await axios.get(
+            `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleId}/resellers?limit=10`
+        );
+
+        const cheapest = response.data.data?.[0] ?? null;
 
         cache.cheapest.set(assetId, cheapest);
 
@@ -75,7 +89,10 @@ async function getCheapest(assetId) {
 
     } catch (err) {
 
-        console.error("Reseller Error:", err.message);
+        console.error(
+            `[ROBLOX] Cheapest lookup failed for ${assetId}:`,
+            err.response?.data || err.message
+        );
 
         return null;
 
