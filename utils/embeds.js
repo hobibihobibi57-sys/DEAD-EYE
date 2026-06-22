@@ -138,73 +138,114 @@ async function createItemEmbed(item, mode, cheapest = null) {
 
         case "buy":
 
-            embed.addFields(
-                {
-                    name: "💰 Cheapest Copy",
-                    value: cheapest
-                        ? `**${cheapest.price.toLocaleString()} Robux**`
-                        : "Not currently for sale",
-                    inline: false
-                }
-            );
+    embed.addFields(
+        {
+            name: "💰 Cheapest Copy",
+            value: cheapest
+                ? `**${cheapest.price.toLocaleString()} Robux**`
+                : "Not currently for sale",
+            inline: false
+        }
+    );
 
-            break;
+    if (cheapest?.seller?.name) {
 
-        case "search":
+        embed.addFields({
+            name: "👤 Seller",
+            value: cheapest.seller.name,
+            inline: true
+        });
 
-            embed.addFields(
+    }
 
-                {
-                    name: "📈 RAP",
-                    value: item.rap > 0
-                        ? `**${item.rap.toLocaleString()} Robux**`
-                        : "Unknown",
-                    inline: true
-                },
+    if (cheapest?.serialNumber !== null && cheapest?.serialNumber !== undefined) {
 
-                {
-                    name: "💎 Value",
-                    value: item.value > 0
-                        ? `**${item.value.toLocaleString()} Robux**`
-                        : "No Value",
-                    inline: true
-                },
+        embed.addFields({
+            name: "#️⃣ Serial",
+            value: `#${cheapest.serialNumber}`,
+            inline: true
+        });
 
-                {
-                    name: "\u200B",
-                    value: "\u200B",
-                    inline: true
-                },
+    }
 
-                {
-                    name: "📊 Demand",
-                    value: formatDemand(item.demand),
-                    inline: true
-                },
+    break;
 
-                {
-                    name: "📉 Trend",
-                    value: formatTrend(item.trend),
-                    inline: true
-                },
+case "search":
 
-                {
-                    name: "\u200B",
-                    value: "\u200B",
-                    inline: true
-                },
+    embed.addFields(
 
-                {
-                    name: "💰 Cheapest Copy",
-                    value: cheapest
-                        ? `**${cheapest.price.toLocaleString()} Robux**`
-                        : "Not currently for sale",
-                    inline: false
-                }
+        {
+            name: "📈 RAP",
+            value: item.rap > 0
+                ? `**${item.rap.toLocaleString()} Robux**`
+                : "Unknown",
+            inline: true
+        },
 
-            );
+        {
+            name: "💎 Value",
+            value: item.value > 0
+                ? `**${item.value.toLocaleString()} Robux**`
+                : "No Value",
+            inline: true
+        },
 
-            break;
+        {
+            name: "\u200B",
+            value: "\u200B",
+            inline: true
+        },
+
+        {
+            name: "📊 Demand",
+            value: formatDemand(item.demand),
+            inline: true
+        },
+
+        {
+            name: "📉 Trend",
+            value: formatTrend(item.trend),
+            inline: true
+        },
+
+        {
+            name: "\u200B",
+            value: "\u200B",
+            inline: true
+        },
+
+        {
+            name: "💰 Cheapest Copy",
+            value: cheapest
+                ? `**${cheapest.price.toLocaleString()} Robux**`
+                : "Not currently for sale",
+            inline: false
+        }
+
+    );
+
+    if (cheapest?.seller?.name) {
+
+        embed.addFields({
+            name: "👤 Seller",
+            value: cheapest.seller.name,
+            inline: true
+        });
+
+    }
+
+    if (cheapest?.serialNumber !== null &&
+        cheapest?.serialNumber !== undefined) {
+
+        embed.addFields({
+            name: "#️⃣ Serial",
+            value: `#${cheapest.serialNumber}`,
+            inline: true
+        });
+
+    }
+
+    break;
 
     }
 
